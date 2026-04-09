@@ -6,6 +6,7 @@ import {ApiResponse} from "../utils/apiResponse.js"
 
 
 
+
 const registerUser = asyncHandler(async (req , res) => {
     //get user details from the frontend
     //validation , if anything is empty or not
@@ -57,17 +58,18 @@ const registerUser = asyncHandler(async (req , res) => {
     const coverImageUrl = await uploadOnCloudinary(coverImageLocalPath)
 
     if(!avatarUrl){
+        console.log(req.file);
+        console.log(req.files);
         throw new apiError(400 , "Avatar upload failed")
     }
 
     const user = await User.create({
-        fullName,
-        avatar: avatarUrl.url,
-        coverImage: coverImageUrl?.url || "",
+        fullname: fullName,
+        avatar: avatarUrl,
+        coverImage: coverImageUrl || "",
         email,
-        username : username.tolowerCase(),
+        username : username.toLowerCase(),
         password,
-
     })
 
     const createdUser = await User.findById(user._id).select("-password -refreshToken")
@@ -82,4 +84,3 @@ const registerUser = asyncHandler(async (req , res) => {
 })
 
 export {registerUser}
-
