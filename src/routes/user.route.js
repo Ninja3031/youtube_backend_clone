@@ -19,6 +19,4 @@ router.route("/register").post(
     ]),
     registerUser)
 
-    const default = function ()
-
 export default router;
