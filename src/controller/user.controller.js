@@ -5,7 +5,20 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {ApiResponse} from "../utils/apiResponse.js"
 
 
+const generateAccessAndRefreshTokens = async(userId) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken() 
+        const refreshToken = user.generateRefreshToken()
 
+        user.refreshToken = refreshToken
+        user.save({validateBeforeSave:false})
+
+        return {accessToken , refreshToken}
+    } catch (error) {
+        throw new apiError(500 , "something went wrong while generating tokens")
+    }
+}
 
 const registerUser = asyncHandler(async (req , res) => {
     //get user details from the frontend
@@ -80,7 +93,7 @@ const registerUser = asyncHandler(async (req , res) => {
         password,
     })
 
-    const createdUser = await User.findById(user._id).select("-password -refreshToken")
+    const createdUser = await User.findById(user._id).select("-password -refreshToken")//here select is used becuase we want to exclude sensitive fields like password and refresh token while returning a response 
 
     if(!createdUser){
         throw new apiError(500 , "something went wrong while registering the user")
@@ -89,6 +102,70 @@ const registerUser = asyncHandler(async (req , res) => {
     return res.status(201).json(
         new ApiResponse("User created successfully" , 201 , createdUser)
     )
+})
+
+const logInUser = asyncHandler(async (req , res) => {
+    //the usercomes on the login page 
+    //it enters its credentials 
+    //if the credentials match with those in the database its granted access 
+    //if not then returned with invalid user
+    //if granted access give it a session id(cookie)
+    //and a jwt token 
+
+    const {email , username , password} = req.body
+
+    if(!username || !email ){
+        throw new apiError(400 , "Username or email is required")
+    }
+
+    const user = await User.findOne({
+        $or: [{ username }, { email }]
+    });
+
+    if (!user) {
+        throw new apiError(404, "User not found");
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if (!isPasswordValid) {
+        throw new apiError(401, "Invalid user credentials");
+    }
+
+    const {accessToken , refreshToken}= await generateAccessAndRefreshTokens(user._id)
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    const options = {
+        httpOnly : true,
+        secure : true
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken" , accessToken , options)
+    .cookie("refreshToken" , refreshToken , options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user : loggedInUser, accessToken,
+                refreshToken
+            },
+            "User logged in successfully"
+        )
+    )   
+
+})
+
+const registerLike = asyncHandler(async (req , res) => {
+    //the user login
+    //the user likes the video 
+    //the user likes should not be duplicatyed 
+    const userid = req.user._id
+    const {videoId} = req.body
+
+
 })
 
 export {registerUser}
