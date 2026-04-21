@@ -158,14 +158,8 @@ const logInUser = asyncHandler(async (req , res) => {
 
 })
 
-const registerLike = asyncHandler(async (req , res) => {
-    //the user login
-    //the user likes the video 
-    //the user likes should not be duplicatyed 
-    const userid = req.user._id
-    const {videoId} = req.body
-
-
+const logOutUser = asyncHandler(async(req , res) => {
+    User.findById
 })
 
 export {registerUser}
