@@ -3,6 +3,8 @@ import {apiError} from "../utils/apiError.js"
 import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {ApiResponse} from "../utils/apiResponse.js"
+import jwt from "jsonwebtoken"
+
 
 
 const generateAccessAndRefreshTokens = async(userId) => {
@@ -114,7 +116,7 @@ const logInUser = asyncHandler(async (req , res) => {
 
     const {email , username , password} = req.body
 
-    if(!username || !email ){
+    if(!username && !email ){
         throw new apiError(400 , "Username or email is required")
     }
 
@@ -189,7 +191,58 @@ const logOutUser = asyncHandler(async(req , res) => {
     )
 })
 
-export {registerUser,
+const refreshAccessToken = asyncHandler(async(req , res) => {
+    try {
+        const incomingRefereshToken = req.cookies.refreshToken || req.body.accessToken
+    
+        if(!incomingRefereshToken){
+            throw new apiError(401 , "Unauthorized request")
+        }
+    
+        const decodedToken = jwt.verify(
+            incomingRefereshToken,
+            process.env.REFRESH_TOKEN_SECRET,
+        )
+    
+        const user = awaitUser.findById(decodedToken._id)
+    
+        if(!user){
+            throw new apiError(401 , "invalid referesh Token")
+        }
+    
+        if(user.refreshToken !== incomingRefereshToken){
+            throw new apiError(401 , "referesh token is either expired or used")
+        }
+    
+        const options = {
+            httpOnly : true,
+            secure : true
+        }
+    
+        const {accessToken , refreshToken} = await generateAccessAndRefreshTokens(user._id)
+    
+        return res
+        .status(200)
+        .cookie("accessToken" , accessToken , options)
+        .cookie("refreshToken" , refreshToken , options)
+        .json(
+            new ApiResponse(
+                200,
+                {accessToken , refreshToken},
+                "Access Token Refreshed Successfully"
+            )
+        )
+    } catch (error) {
+        throw new apiError(401 , error?.message || "Unauthorized request")
+    }
+
+
+
+})
+
+export {
+    registerUser,
     logInUser,
-    logOutUser
+    logOutUser,
+    refreshAccessToken
 }
