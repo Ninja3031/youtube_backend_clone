@@ -193,7 +193,7 @@ const logOutUser = asyncHandler(async(req , res) => {
 
 const refreshAccessToken = asyncHandler(async(req , res) => {
     try {
-        const incomingRefereshToken = req.cookies.refreshToken || req.body.accessToken
+        const incomingRefereshToken = req.cookies.refreshToken || req.body.refreshToken
     
         if(!incomingRefereshToken){
             throw new apiError(401 , "Unauthorized request")
